@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% load static %}
+{% load crispy_forms_tags %}
+
+{% block content %}
+<div class="container mx-auto p-4">
+    <h1 class="text-3xl font-bold mb-4">Add New Product</h1>
+    <form method="post" enctype="multipart/form-data" class="space-y-4">
+        {% csrf_token %}
+        <div>
+            <label for="id_name" class="block text-sm font-medium text-gray-700">Product Name</label>
+            {{ form.name|as_crispy_field }}
+        </div>
+        <div>
+            <label for="id_image" class="block text-sm font-medium text-gray-700">Product Image</label>
+            {{ form.image|as_crispy_field }}
+        </div>
+        <div>
+            <label for="id_price" class="block text-sm font-medium text-gray-700">Product Price</label>
+            {{ form.price|as_crispy_field }}
+        </div>
+        <div>
+            <button type="submit" class="btn btn-primary">Add Product</button>
+        </div>
+    </form>
+</div>
+{% endblock %}

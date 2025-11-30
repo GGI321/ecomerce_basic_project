@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% load static %}
+{% block content %}
+
+<h1 class="text-3xl font-bold mb-4 px-2">Products</h1>
+
+<!-- CHECKOUT BUTTON -->
+<div class="px-2 mb-4">
+    <a href="{% url 'checkout' %}" class="btn btn-primary ">
+        Go to Checkout 🛒
+    </a>
+</div>
+
+<!-- Live Search Result Container -->
+<div id="live-results-container">
+    {% include "product_grid.html" %}
+</div>
+
+{% endblock %}

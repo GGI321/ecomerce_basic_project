@@ -1,0 +1,22 @@
+{% for item in items %}
+<div class="card bg-base-100 shadow p-2 mb-2 flex gap-2">
+    <img src="{{ item.image }}" class="w-20 h-20 rounded object-cover">
+
+    <div class="flex-1">
+        <h2 class="font-semibold">{{ item.name }}</h2>
+        <p>$ {{ item.price }}</p>
+
+        <div class="flex gap-1 mt-2">
+            <button class="btn btn-xs btn-success" onclick="addToCart({{ item.id }})">＋</button>
+            <span class="px-2">{{ item.quantity }}</span>
+            <button class="btn btn-xs btn-warning" onclick="reduceCart({{ item.id }})">－</button>
+        </div>
+
+        <button class="btn btn-xs btn-error mt-1" onclick="removeFromCart({{ item.id }})">Remove</button>
+    </div>
+
+    <p class="text-right">$ {{ item.subtotal }}</p>
+</div>
+{% endfor %}
+
+<h2 class="text-xl font-bold mt-4">Total: ${{ total_price }}</h2>

@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h1 class="text-2xl font-bold px-4 mb-4">Checkout</h1>
+
+<div class="grid lg:grid-cols-2 gap-4 px-4">
+
+    <!-- 🛒 ORDER SUMMARY -->
+    <div class="card bg-base-100 shadow p-4">
+        <h2 class="text-xl font-semibold mb-3">Order Summary</h2>
+            <div>
+                <a href="{% url 'product_list' %}"><button class="btn btn-primary">Continue Shopping</button></a>
+            </div>
+        <div id="checkout-items">
+            {% for item in cart_items %}
+            <div id="item-{{ item.id }}" class="flex gap-3 border-b pb-2 mb-4 checkout-item">
+
+                <img src="{{ item.image }}" class="w-20 h-20 object-cover rounded">
+
+                <div class="flex-1">
+                    <h3 class="font-semibold">{{ item.name }}</h3>
+
+                    <!-- Quantity Controls -->
+                    <div class="flex gap-2 my-2 items-center">
+                        <button onclick="addToCart({{ item.id }})" class="btn btn-xs btn-success">＋</button>
+                        <span id="qty-{{ item.id }}" class="px-2">{{ item.quantity }}</span>
+                        <button onclick="reduceCart({{ item.id }})" class="btn btn-xs btn-warning">－</button>
+                    </div>
+
+                    <!-- Subtotal -->
+                    <p class="font-bold">
+                        Subtotal: $<span id="subtotal-{{ item.id }}">{{ item.subtotal }}</span>
+                    </p>
+
+                    <!-- Remove Button -->
+                    <button onclick="removeFromCart({{ item.id }})" class="btn btn-xs btn-error mt-2">
+                        Remove
+                    </button>
+                </div>
+
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Total -->
+        <h2 class="text-xl font-bold text-right mt-4">
+            Total: $<span id="checkout-total">{{ total_price }}</span>
+        </h2>
+    </div>
+
+
+    <!-- 📝 SHIPPING FORM -->
+    <div class="card bg-base-100 shadow p-4">
+        <h2 class="text-xl font-semibold mb-3">Shipping Information</h2>
+
+        <form method="POST">
+            {% csrf_token %}
+
+            <label class="form-control mb-3">
+                <span class="label-text">Full Name</span>
+                <input type="text" name="name" class="input input-bordered" required>
+            </label>
+
+            <label class="form-control mb-3">
+                <span class="label-text">Email</span>
+                <input type="email" name="email" class="input input-bordered" required>
+            </label>
+
+            <label class="form-control mb-3">
+                <span class="label-text">Phone Number</span>
+                <input type="text" name="phone" class="input input-bordered" required>
+            </label>
+
+            <label class="form-control mb-3">
+                <span class="label-text">Shipping Address</span>
+                <textarea name="address" class="textarea textarea-bordered" required></textarea>
+            </label>
+
+            <button class="btn btn-primary w-full">Place Order</button>
+        </form>
+    </div>
+
+</div>
+
+{% endblock %}
+
+
+<!-- ⭐⭐ ALL CHECKOUT JAVASCRIPT MUST GO HERE ⭐⭐ -->
+{% block scripts %}
+<script>
+
+async function addToCart(id) {
+    const res = await fetch(`/cart/add/${id}/`, { cache: "no-store" });
+    const data = await res.json();
+    updateCheckoutUI(data, id);
+}
+
+async function reduceCart(id) {
+    const res = await fetch(`/cart/reduce/${id}/`, { cache: "no-store" });
+    const data = await res.json();
+
+    if (!data.items.find(item => Number(item.id) === Number(id))) {
+        const row = document.getElementById(`item-${id}`);
+        if (row) row.remove();
+    }
+
+    updateCheckoutUI(data, id);
+}
+
+async function removeFromCart(id) {
+    const res = await fetch(`/cart/remove/${id}/`, { cache: "no-store" });
+    const data = await res.json();
+
+    const row = document.getElementById(`item-${id}`);
+    if (row) row.remove();
+
+    updateCheckoutUI(data, id);
+}
+
+function updateCheckoutUI(data, updatedId) {
+
+    // Update navbar badge
+    document.getElementById("cart-count").innerText = data.total_qty;
+
+    // Update total price
+    const total = document.getElementById("checkout-total");
+    if (total) total.innerText = data.total_price;
+
+    // Update ONLY the changed item
+    data.items.forEach(item => {
+        if (Number(item.id) === Number(updatedId)) {
+
+            const qty = document.getElementById(`qty-${item.id}`);
+            if (qty) qty.innerText = item.quantity;
+
+            const sub = document.getElementById(`subtotal-${item.id}`);
+            if (sub) sub.innerText = item.subtotal;
+        }
+    });
+}
+
+</script>
+{% endblock %}

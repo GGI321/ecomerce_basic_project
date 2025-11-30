@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Shop</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@5" rel="stylesheet" type="text/css" />
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+</head>
+<body>
+
+<!-- NAVBAR -->
+<div class="navbar bg-base-100 shadow-sm fixed top-0 left-0 right-0 z-50">
+  <div class="flex-1">
+    <a href="/" class="btn btn-ghost text-xl">Shop</a>
+  </div>
+
+  <div class="flex gap-2 items-center">
+
+    <!-- 🔎 Search + Auto Suggest -->
+    <div class="relative">
+      <form action="{% url 'product_list' %}" method="GET" class="flex">
+        <input
+          type="text"
+          name="q"
+          id="search-input"
+          placeholder="Search..."
+          class="input input-bordered w-24 md:w-auto"
+          autocomplete="off"
+        />
+      </form>
+
+      <!-- Suggestion dropdown -->
+      <ul id="search-suggest"
+          class="absolute bg-base-100 shadow-lg rounded-lg mt-1 w-full hidden z-50"></ul>
+    </div>
+
+    <!-- 🛒 Cart with Counter -->
+    <div class="indicator">
+      <span id="cart-count" class="indicator-item badge badge-primary">0</span>
+      <a href="{% url 'checkout' %}" class="btn btn-ghost btn-circle">
+        🛒
+      </a>
+    </div>
+
+    <!-- 🌗 Dark Mode Toggle -->
+    <label class="swap swap-rotate btn btn-ghost btn-circle">
+      <input type="checkbox" id="theme-toggle" />
+      <svg class="swap-on fill-current w-7 h-7" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+        <path d="M5.64 17l-.71.71L6.34 19l.71-.71M11 22h1v-3h-1zM2 11H5v1H2zM17 5.64l.71-.71L19 6.34l-.71.71M12 2h-1v3h1zM19.78 16v-1H23v1z"/>
+      </svg>
+
+      <svg class="swap-off fill-current w-7 h-7" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+        <path d="M21.64 13A9 9 0 0111 3.36 7 7 0 1018.64 17 8.92 8.92 0 0121.64 13z"/>
+      </svg>
+    </label>
+
+  </div>
+</div>
+
+<!-- CONTENT WITH TOP MARGIN (space for fixed navbar) -->
+<div class="pt-32">
+    {% block content %}
+    {% endblock %}
+</div>
+
+<!-- FOOTER -->
+<footer class="footer sm:footer-horizontal bg-neutral text-neutral-content p-10 mt-10">
+  <nav>
+    <h6 class="footer-title">Services</h6>
+    <a class="link link-hover">Branding</a>
+    <a class="link link-hover">Design</a>
+    <a class="link link-hover">Marketing</a>
+    <a class="link link-hover">Advertisement</a>
+  </nav>
+  <nav>
+    <h6 class="footer-title">Company</h6>
+    <a class="link link-hover">About us</a>
+    <a class="link link-hover">Contact</a>
+    <a class="link link-hover">Jobs</a>
+    <a class="link link-hover">Press kit</a>
+  </nav>
+  <nav>
+    <h6 class="footer-title">Legal</h6>
+    <a class="link link-hover">Terms of use</a>
+    <a class="link link-hover">Privacy policy</a>
+    <a class="link link-hover">Cookie policy</a>
+  </nav>
+</footer>
+
+<!-- BASE JAVASCRIPT (runs on all pages) -->
+<script>
+/* Helper: safe getElement */
+function $get(id) { return document.getElementById(id) || null; }
+
+/* -----------------------
+   LIVE SEARCH + AUTO-SUGGEST
+   ----------------------- */
+(function(){
+  const searchInput = $get("search-input");
+  const suggestBox = $get("search-suggest");
+  const container = $get("live-results-container"); // may be null on non-product pages
+
+  if (searchInput) {
+    let lastFetch = 0;
+    searchInput.addEventListener("input", async (ev) => {
+      const q = searchInput.value.trim();
+      lastFetch++;
+      const fetchId = lastFetch;
+
+      // hide if empty
+      if (!q) {
+        if (suggestBox) suggestBox.classList.add("hidden");
+        // if there's a live-results-container, reload original grid (optional)
+        if (container && fetchId === lastFetch) {
+          try {
+            const res = await fetch("/product_list/", { cache: "no-store" });
+            const text = await res.text();
+            const temp = document.createElement("div");
+            temp.innerHTML = text;
+            const newGrid = temp.querySelector("#live-results-container");
+            if (newGrid) container.innerHTML = newGrid.innerHTML;
+          } catch (e) { /* ignore */ }
+        }
+        return;
+      }
+
+      // fetch suggestions
+      try {
+        const res = await fetch(`/search_suggest/?q=${encodeURIComponent(q)}`, { cache: "no-store" });
+        const data = await res.json();
+
+        if (!suggestBox) return;
+        suggestBox.innerHTML = "";
+        data.forEach(item => {
+          const li = document.createElement("li");
+          li.className = "p-2 hover:bg-base-200 cursor-pointer";
+          li.textContent = item.name;
+          li.addEventListener("click", () => {
+            window.location.href = `/product/${item.id}/`;
+          });
+          suggestBox.appendChild(li);
+        });
+
+        if (data.length) suggestBox.classList.remove("hidden");
+        else suggestBox.classList.add("hidden");
+      } catch (e) {
+        if (suggestBox) suggestBox.classList.add("hidden");
+        console.error("Suggest error", e);
+      }
+    });
+
+    // close suggestions on outside click
+    document.addEventListener("click", (e) => {
+      if (!suggestBox) return;
+      if (!suggestBox.contains(e.target) && e.target !== searchInput) suggestBox.classList.add("hidden");
+    });
+  }
+})();
+
+/* -----------------------
+   CART: add/reduce/remove helpers used globally (navbar + pages)
+   ----------------------- */
+
+async function fetchJson(url, opts = {}) {
+  opts.cache = opts.cache || "no-store";
+  opts.headers = opts.headers || {};
+  // For POST endpoints later: opts.headers['X-CSRFToken'] = ...
+  const res = await fetch(url, opts);
+  return res.ok ? res.json() : Promise.reject(new Error("Network response was not ok"));
+}
+
+/* update navbar cart count if badge exists */
+function updateNavbarCartCount(total_qty) {
+  const badge = $get("cart-count");
+  if (badge) badge.innerText = total_qty;
+}
+
+/* Generic cart UI updater used by pages (checkout etc.) */
+function applyCartSummaryToPage(summary, updatedId=null) {
+  updateNavbarCartCount(summary.total_qty);
+
+  // If page has checkout UI, update total and items
+  const totalEl = $get("checkout-total");
+  if (totalEl) totalEl.innerText = summary.total_price;
+
+  // update item quantities/subtotals if present
+  summary.items.forEach(item => {
+    const qtyEl = $get(`qty-${item.id}`);
+    const subEl = $get(`subtotal-${item.id}`);
+    if (qtyEl) qtyEl.innerText = item.quantity;
+    if (subEl) subEl.innerText = item.subtotal;
+    // if updatedId provided, only update the one changed (avoid reflow)
+    // but updating all is safe too
+  });
+}
+
+/* expose simple functions for inline onclicks in templates */
+async function addToCart(id) {
+  try {
+    const data = await fetchJson(`/cart/add/${id}/`);
+    applyCartSummaryToPage(data, id);
+  } catch (e) { console.error(e); }
+}
+
+async function reduceCart(id) {
+  try {
+    const data = await fetchJson(`/cart/reduce/${id}/`);
+    // if item removed from backend, remove DOM element if present
+    if (!data.items.find(i => Number(i.id) === Number(id))) {
+      const el = $get(`item-${id}`);
+      if (el) el.remove();
+    }
+    applyCartSummaryToPage(data, id);
+  } catch (e) { console.error(e); }
+}
+
+async function removeFromCart(id) {
+  try {
+    const data = await fetchJson(`/cart/remove/${id}/`);
+    const el = $get(`item-${id}`);
+    if (el) el.remove();
+    applyCartSummaryToPage(data, id);
+  } catch (e) { console.error(e); }
+}
+
+/* navbar cart count loader on page load */
+(async function loadCartCount() {
+  try {
+    const res = await fetchJson("/cart_count/");
+    if (res && typeof res.count !== "undefined") {
+      updateNavbarCartCount(res.count);
+    }
+  } catch (e) { /* ignore */ }
+})();
+
+/* -----------------------
+   THEME TOGGLE
+   ----------------------- */
+(function(){
+  const toggle = $get("theme-toggle");
+  if (!toggle) return;
+
+  // try to restore previous preference from localStorage
+  const saved = localStorage.getItem("site-theme");
+  if (saved) document.documentElement.setAttribute("data-theme", saved);
+
+  toggle.addEventListener("change", () => {
+    const theme = toggle.checked ? "dark" : "light";
+    document.documentElement.setAttribute("data-theme", theme);
+    localStorage.setItem("site-theme", theme);
+  });
+
+  // set toggle position from current theme
+  const current = document.documentElement.getAttribute("data-theme");
+  if (current === "dark") toggle.checked = true;
+})();
+</script>
+
+<!-- SCRIPT INJECTION POINT FOR CHILD PAGES -->
+{% block scripts %}
+{% endblock %}
+
+</body>
+</html>
