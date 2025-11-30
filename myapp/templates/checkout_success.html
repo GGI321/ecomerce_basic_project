@@ -1,10 +1,12 @@
 {% extends "base.html" %}
+
 {% block content %}
-
 <div class="text-center mt-20">
-    <h1 class="text-3xl font-bold mb-4">Thank you, {{ name }}!</h1>
-    <p class="text-xl">Your order totaling <strong>${{ total_price }}</strong> has been placed.</p>
-    <a href="{% url 'product_list' %}" class="btn btn-primary mt-6">Continue Shopping</a>
-</div>
+    <h1 class="text-3xl font-bold mb-4">Order Successful!</h1>
+    <p class="text-xl">Your order has been placed successfully.</p>
 
+    <a href="{% url 'product_list' %}" class="btn btn-primary mt-6">
+        Continue Shopping
+    </a>
+</div>
 {% endblock %}

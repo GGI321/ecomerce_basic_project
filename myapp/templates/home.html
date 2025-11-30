@@ -1,34 +1,191 @@
 {% extends "base.html" %}
 {% load static %}
 {% block content %}
-<div class="container mx-auto p-4">
-    <h1 class="text-3xl font-bold mb-4">Welcome to the Home Page</h1>
-    <p class="mb-4">This is a sample home page using DaisyUI components.</p>
-    <a href="{% url 'add_product' %}"><button class="btn btn-primary">Add Product</button></a>
-    <a href="{% url 'product_list' %}"><button class="btn btn-primary">View Products</button></a>
 
-    
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div class="card bg-base-100 shadow-xl">
-            <figure><img src="https://placeimg.com/400/225/arch" alt="Architecture" /></figure>
-            <div class="card-body">
-                <h2 class="card-title">Card Title 1</h2>
-                <p>If a dog chews shoes whose shoes does he choose?</p> 
-                <div class="card-actions justify-end">
-                    <button class="btn btn-primary">Buy Now</button>
+<div class="max-w-6xl mx-auto px-4 py-8">
+
+    <!-- Header -->
+    <section class="mb-8 text-center">
+        <h1 class="text-3xl font-extrabold text-gray-900">Welcome 👋</h1>
+        <p class="text-gray-600 text-sm mt-2">
+            Explore our collection of amazing products!
+        </p>
+    </section>
+
+    <!-- Buttons -->
+    <section class="flex flex-wrap gap-3 justify-center mb-8">
+        <a href="{% url 'add_product' %}" class="btn btn-primary rounded-xl w-40">
+            ➕ Add Product
+        </a>
+        <a href="{% url 'product_list' %}" class="btn btn-outline btn-primary rounded-xl w-40">
+            📦 View Products
+        </a>
+    </section>
+
+    <!-- Responsive Flutter-like Grid -->
+    <section>
+        <h2 class="text-xl font-semibold text-gray-800 mb-4">Featured Products</h2>
+
+        <div class="
+            grid 
+            grid-cols-2           <!-- mobile -->
+            sm:grid-cols-2        <!-- small screens -->
+            md:grid-cols-3        <!-- tablets -->
+            lg:grid-cols-4        <!-- desktops -->
+            gap-6
+        ">
+
+            <!-- Card 1 -->
+            <div class="card bg-white shadow-md rounded-2xl overflow-hidden">
+                <figure class="h-36 w-full overflow-hidden">
+                    <img src="{% static 'images/arch.jpg' %}"
+                         class="object-cover w-full h-full" />
+                </figure>
+                <div class="card-body p-4">
+                    <h3 class="font-bold text-lg">Card Title 1</h3>
+                    <p class="text-gray-600 text-sm">
+                        This is a sample product description.
+                    </p>
+                    <button class="btn btn-primary btn-sm rounded-lg mt-2 w-full">
+                        Buy Now
+                    </button>
                 </div>
             </div>
-        </div>
-        <div class="card bg-base-100 shadow-xl">
-            <figure><img src="https://placeimg.com/400/225/nature" alt="Nature" /></figure>
-            <div class="card-body">
-                <h2 class="card-title">Card Title 2</h2>
-                <p>If a dog chews shoes whose shoes does he choose?</p>
-                <div class="card-actions justify-end">
-                    <button class="btn btn-primary">Buy Now</button>
+
+            <!-- Card 2 -->
+            <div class="card bg-white shadow-md rounded-2xl overflow-hidden">
+                <figure class="h-36 w-full overflow-hidden">
+                    <img src="{% static 'images/nature.jpg' %}"
+                         class="object-cover w-full h-full" />
+                </figure>
+                <div class="card-body p-4">
+                    <h3 class="font-bold text-lg">Card Title 2</h3>
+                    <p class="text-gray-600 text-sm">
+                        Beautiful nature collection.
+                    </p>
+                    <button class="btn btn-primary btn-sm rounded-lg mt-2 w-full">
+                        Buy Now
+                    </button>
                 </div>
             </div>
+
+              <div class="card bg-white shadow-md rounded-2xl overflow-hidden">
+                <figure class="h-36 w-full overflow-hidden">
+                    <img src="{% static 'images/nature.jpg' %}"
+                         class="object-cover w-full h-full" />
+                </figure>
+                <div class="card-body p-4">
+                    <h3 class="font-bold text-lg">Card Title 2</h3>
+                    <p class="text-gray-600 text-sm">
+                        Beautiful nature collection.
+                    </p>
+                    <button class="btn btn-primary btn-sm rounded-lg mt-2 w-full">
+                        Buy Now
+                    </button>
+                </div>
+            </div>
+
+              <div class="card bg-white shadow-md rounded-2xl overflow-hidden">
+                <figure class="h-36 w-full overflow-hidden">
+                    <img src="{% static 'images/nature.jpg' %}"
+                         class="object-cover w-full h-full" />
+                </figure>
+                <div class="card-body p-4">
+                    <h3 class="font-bold text-lg">Card Title 2</h3>
+                    <p class="text-gray-600 text-sm">
+                        Beautiful nature collection.
+                    </p>
+                    <button class="btn btn-primary btn-sm rounded-lg mt-2 w-full">
+                        Buy Now
+                    </button>
+                </div>
+            </div>
+
+              <div class="card bg-white shadow-md rounded-2xl overflow-hidden">
+                <figure class="h-36 w-full overflow-hidden">
+                    <img src="{% static 'images/nature.jpg' %}"
+                         class="object-cover w-full h-full" />
+                </figure>
+                <div class="card-body p-4">
+                    <h3 class="font-bold text-lg">Card Title 2</h3>
+                    <p class="text-gray-600 text-sm">
+                        Beautiful nature collection.
+                    </p>
+                    <button class="btn btn-primary btn-sm rounded-lg mt-2 w-full">
+                        Buy Now
+                    </button>
+                </div>
+            </div>
+
+              <div class="card bg-white shadow-md rounded-2xl overflow-hidden">
+                <figure class="h-36 w-full overflow-hidden">
+                    <img src="{% static 'images/nature.jpg' %}"
+                         class="object-cover w-full h-full" />
+                </figure>
+                <div class="card-body p-4">
+                    <h3 class="font-bold text-lg">Card Title 2</h3>
+                    <p class="text-gray-600 text-sm">
+                        Beautiful nature collection.
+                    </p>
+                    <button class="btn btn-primary btn-sm rounded-lg mt-2 w-full">
+                        Buy Now
+                    </button>
+                </div>
+            </div>
+
+              <div class="card bg-white shadow-md rounded-2xl overflow-hidden">
+                <figure class="h-36 w-full overflow-hidden">
+                    <img src="{% static 'images/nature.jpg' %}"
+                         class="object-cover w-full h-full" />
+                </figure>
+                <div class="card-body p-4">
+                    <h3 class="font-bold text-lg">Card Title 2</h3>
+                    <p class="text-gray-600 text-sm">
+                        Beautiful nature collection.
+                    </p>
+                    <button class="btn btn-primary btn-sm rounded-lg mt-2 w-full">
+                        Buy Now
+                    </button>
+                </div>
+            </div>
+
+              <div class="card bg-white shadow-md rounded-2xl overflow-hidden">
+                <figure class="h-36 w-full overflow-hidden">
+                    <img src="{% static 'images/nature.jpg' %}"
+                         class="object-cover w-full h-full" />
+                </figure>
+                <div class="card-body p-4">
+                    <h3 class="font-bold text-lg">Card Title 2</h3>
+                    <p class="text-gray-600 text-sm">
+                        Beautiful nature collection.
+                    </p>
+                    <button class="btn btn-primary btn-sm rounded-lg mt-2 w-full">
+                        Buy Now
+                    </button>
+                </div>
+            </div>
+
+              <div class="card bg-white shadow-md rounded-2xl overflow-hidden">
+                <figure class="h-36 w-full overflow-hidden">
+                    <img src="{% static 'images/nature.jpg' %}"
+                         class="object-cover w-full h-full" />
+                </figure>
+                <div class="card-body p-4">
+                    <h3 class="font-bold text-lg">Card Title 2</h3>
+                    <p class="text-gray-600 text-sm">
+                        Beautiful nature collection.
+                    </p>
+                    <button class="btn btn-primary btn-sm rounded-lg mt-2 w-full">
+                        Buy Now
+                    </button>
+                </div>
+            </div>
+
+            <!-- You can add more cards here -->
+
         </div>
-    </div>
+    </section>
+
 </div>
+
 {% endblock %}

@@ -1,98 +1,127 @@
 {% extends "base.html" %}
 {% block content %}
 
-<h1 class="text-2xl font-bold px-4 mb-4">Checkout</h1>
+<div class="max-w-6xl mx-auto px-4 py-6">
 
-<div class="grid lg:grid-cols-2 gap-4 px-4">
+    <h1 class="text-3xl font-extrabold mb-6">Checkout</h1>
 
-    <!-- 🛒 ORDER SUMMARY -->
-    <div class="card bg-base-100 shadow p-4">
-        <h2 class="text-xl font-semibold mb-3">Order Summary</h2>
-            <div>
-                <a href="{% url 'product_list' %}"><button class="btn btn-primary">Continue Shopping</button></a>
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+        <!-- 🛒 ORDER SUMMARY -->
+        <div class="card bg-white rounded-2xl shadow-lg p-6">
+
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-xl font-semibold">Order Summary</h2>
+                <a href="{% url 'product_list' %}">
+                    <button class="btn btn-sm btn-primary rounded-lg">Continue Shopping</button>
+                </a>
             </div>
-        <div id="checkout-items">
-            {% for item in cart_items %}
-            <div id="item-{{ item.id }}" class="flex gap-3 border-b pb-2 mb-4 checkout-item">
 
-                <img src="{{ item.image }}" class="w-20 h-20 object-cover rounded">
+            <div id="checkout-items" class="space-y-4">
 
-                <div class="flex-1">
-                    <h3 class="font-semibold">{{ item.name }}</h3>
+                {% for item in cart_items %}
+                <div id="item-{{ item.id }}" class="flex gap-4 border border-gray-200 p-3 rounded-xl">
 
-                    <!-- Quantity Controls -->
-                    <div class="flex gap-2 my-2 items-center">
-                        <button onclick="addToCart({{ item.id }})" class="btn btn-xs btn-success">＋</button>
-                        <span id="qty-{{ item.id }}" class="px-2">{{ item.quantity }}</span>
-                        <button onclick="reduceCart({{ item.id }})" class="btn btn-xs btn-warning">－</button>
+                    <!-- Product Image -->
+                    <img src="{{ item.image }}" 
+                         class="w-20 h-20 rounded-xl object-cover shadow-sm">
+
+                    <!-- Details -->
+                    <div class="flex-1">
+
+                        <h3 class="font-semibold text-lg">{{ item.name }}</h3>
+
+                        <!-- Quantity Controls -->
+                        <div class="flex items-center gap-2 mt-2">
+                            <button onclick="addToCart({{ item.id }})"
+                                    class="btn btn-xs btn-outline btn-success rounded-lg">
+                                ＋
+                            </button>
+
+                            <span id="qty-{{ item.id }}" class="text-base font-semibold px-3">
+                                {{ item.quantity }}
+                            </span>
+
+                            <button onclick="reduceCart({{ item.id }})"
+                                    class="btn btn-xs btn-outline btn-warning rounded-lg">
+                                －
+                            </button>
+                        </div>
+
+                        <!-- Subtotal -->
+                        <p class="font-medium mt-2 text-gray-700">
+                            Subtotal: $<span id="subtotal-{{ item.id }}">{{ item.subtotal }}</span>
+                        </p>
+
+                        <!-- Remove Button -->
+                        <button onclick="removeFromCart({{ item.id }})"
+                                class="btn btn-xs btn-error mt-2 rounded-lg">
+                            Remove
+                        </button>
+
                     </div>
 
-                    <!-- Subtotal -->
-                    <p class="font-bold">
-                        Subtotal: $<span id="subtotal-{{ item.id }}">{{ item.subtotal }}</span>
-                    </p>
-
-                    <!-- Remove Button -->
-                    <button onclick="removeFromCart({{ item.id }})" class="btn btn-xs btn-error mt-2">
-                        Remove
-                    </button>
                 </div>
-
+                {% endfor %}
             </div>
-            {% endfor %}
+
+            <!-- Total -->
+            <div class="pt-4 border-t mt-6 text-right">
+                <h2 class="text-2xl font-bold">
+                    Total: $<span id="checkout-total">{{ total_price }}</span>
+                </h2>
+            </div>
+
         </div>
 
-        <!-- Total -->
-        <h2 class="text-xl font-bold text-right mt-4">
-            Total: $<span id="checkout-total">{{ total_price }}</span>
-        </h2>
+
+        <!-- 📝 SHIPPING FORM -->
+        <div class="card bg-white rounded-2xl shadow-lg p-6">
+
+            <h2 class="text-xl font-semibold mb-4">Shipping Information</h2>
+
+            <form method="POST" class="space-y-5">
+                {% csrf_token %}
+
+                <label class="form-control">
+                    <span class="label-text font-medium">Full Name</span>
+                    <input type="text" name="name" class="input input-bordered rounded-xl" required>
+                </label>
+
+                <label class="form-control">
+                    <span class="label-text font-medium">Email</span>
+                    <input type="email" name="email" class="input input-bordered rounded-xl" required>
+                </label>
+
+                <label class="form-control">
+                    <span class="label-text font-medium">Phone Number</span>
+                    <input type="text" name="phone" class="input input-bordered rounded-xl" required>
+                </label>
+
+                <label class="form-control">
+                    <span class="label-text font-medium">Shipping Address</span>
+                    <textarea name="address" class="textarea textarea-bordered rounded-xl" required></textarea>
+                </label>
+
+                <button type="submit" class="btn btn-primary w-full rounded-xl py-3 text-lg shadow-md">
+                    Place Order
+                </button>
+            </form>
+
+        </div>
+
     </div>
-
-
-    <!-- 📝 SHIPPING FORM -->
-    <div class="card bg-base-100 shadow p-4">
-        <h2 class="text-xl font-semibold mb-3">Shipping Information</h2>
-
-        <form method="POST">
-            {% csrf_token %}
-
-            <label class="form-control mb-3">
-                <span class="label-text">Full Name</span>
-                <input type="text" name="name" class="input input-bordered" required>
-            </label>
-
-            <label class="form-control mb-3">
-                <span class="label-text">Email</span>
-                <input type="email" name="email" class="input input-bordered" required>
-            </label>
-
-            <label class="form-control mb-3">
-                <span class="label-text">Phone Number</span>
-                <input type="text" name="phone" class="input input-bordered" required>
-            </label>
-
-            <label class="form-control mb-3">
-                <span class="label-text">Shipping Address</span>
-                <textarea name="address" class="textarea textarea-bordered" required></textarea>
-            </label>
-
-            <button class="btn btn-primary w-full">Place Order</button>
-        </form>
-    </div>
-
 </div>
 
 {% endblock %}
 
 
-<!-- ⭐⭐ ALL CHECKOUT JAVASCRIPT MUST GO HERE ⭐⭐ -->
 {% block scripts %}
 <script>
 
 async function addToCart(id) {
     const res = await fetch(`/cart/add/${id}/`, { cache: "no-store" });
-    const data = await res.json();
-    updateCheckoutUI(data, id);
+    updateCheckoutUI(await res.json(), id);
 }
 
 async function reduceCart(id) {
@@ -120,16 +149,15 @@ async function removeFromCart(id) {
 function updateCheckoutUI(data, updatedId) {
 
     // Update navbar badge
-    document.getElementById("cart-count").innerText = data.total_qty;
+    const badge = document.getElementById("cart-count");
+    if (badge) badge.innerText = data.total_qty;
 
-    // Update total price
-    const total = document.getElementById("checkout-total");
-    if (total) total.innerText = data.total_price;
+    // Update total
+    document.getElementById("checkout-total").innerText = data.total_price;
 
-    // Update ONLY the changed item
+    // Update only the edited item
     data.items.forEach(item => {
         if (Number(item.id) === Number(updatedId)) {
-
             const qty = document.getElementById(`qty-${item.id}`);
             if (qty) qty.innerText = item.quantity;
 

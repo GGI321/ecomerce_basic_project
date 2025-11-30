@@ -1,17 +1,29 @@
-from django.shortcuts import render, redirect
-from .models import Products
-from .forms import ProductForm
+from decimal import Decimal
+from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse
-from .models import Products
-# Create your views here.
+from django.contrib import messages
+from django.core.mail import send_mail
+from django.conf import settings
+from django.utils import timezone
 
+from .models import Products, Order, OrderItem
+from .forms import ProductForm
+
+
+# -------------------------------
+# Simple Page Views
+# -------------------------------
 def home(request):
     return render(request, 'home.html')
+
 
 def base(request):
     return render(request, 'base.html')
 
 
+# -------------------------------
+# Product CRUD
+# -------------------------------
 def add_product(request):
     if request.method == 'POST':
         form = ProductForm(request.POST, request.FILES)
@@ -22,16 +34,19 @@ def add_product(request):
         form = ProductForm()
     return render(request, 'add_products.html', {'form': form})
 
+
 def product_list(request):
     products = Products.objects.all()
     return render(request, 'product_list.html', {'products': products})
 
+
 def product_detail(request, pk):
-    product = Products.objects.get(pk=pk)
+    product = get_object_or_404(Products, pk=pk)
     return render(request, 'product_detail.html', {'product': product})
 
+
 def edit_product(request, pk):
-    product= Products.objects.get(pk=pk)
+    product = get_object_or_404(Products, pk=pk)
     if request.method == 'POST':
         form = ProductForm(request.POST, request.FILES, instance=product)
         if form.is_valid():
@@ -41,20 +56,21 @@ def edit_product(request, pk):
         form = ProductForm(instance=product)
     return render(request, 'edit_product.html', {'form': form})
 
+
 def delete_product(request, pk):
-    product = Products.objects.get(pk=pk)
+    product = get_object_or_404(Products, pk=pk)
     if request.method == 'POST':
         product.delete()
         return redirect('product_list')
     return render(request, 'delete_product.html', {'product': product})
 
 
-
+# -------------------------------
+# Search Suggest (AJAX)
+# -------------------------------
 def search_suggest(request):
     q = request.GET.get("q", "")
-
-    products = Products.objects.filter(name__icontains=q)
-
+    products = Products.objects.filter(name__icontains=q)[:10]
     results = [
         {
             "id": p.id,
@@ -64,18 +80,14 @@ def search_suggest(request):
         }
         for p in products
     ]
-
     return JsonResponse(results, safe=False)
 
 
-
-
-from django.http import JsonResponse
-from .models import Products
-
+# -------------------------------
+# CART UTILITIES
+# -------------------------------
 def get_cart(request):
-    cart = request.session.get("cart", {})
-    return cart
+    return request.session.get("cart", {})
 
 
 def save_cart(request, cart):
@@ -83,21 +95,28 @@ def save_cart(request, cart):
     request.session.modified = True
 
 
-# ➕ ADD PRODUCT OR INCREASE QTY
+# -------------------------------
+# CART: Add / Reduce / Remove
+# -------------------------------
 def cart_add(request, pk):
     cart = get_cart(request)
-
     pk = str(pk)
+    product = get_object_or_404(Products, pk=pk)
+
     if pk in cart:
         cart[pk]["quantity"] += 1
     else:
-        cart[pk] = {"quantity": 1}
+        cart[pk] = {
+            "name": product.name,
+            "price": float(product.price),
+            "image": product.image.url if product.image else "",
+            "quantity": 1,
+        }
 
     save_cart(request, cart)
     return JsonResponse(get_cart_summary(cart))
 
 
-# ➖ REDUCE QTY
 def cart_reduce(request, pk):
     cart = get_cart(request)
     pk = str(pk)
@@ -111,186 +130,165 @@ def cart_reduce(request, pk):
     return JsonResponse(get_cart_summary(cart))
 
 
-# ❌ REMOVE PRODUCT COMPLETELY
 def cart_remove(request, pk):
     cart = get_cart(request)
     pk = str(pk)
-
     if pk in cart:
         del cart[pk]
-
     save_cart(request, cart)
     return JsonResponse(get_cart_summary(cart))
 
 
-# 📦 FULL CART DETAILS (SUMMARY)
+# -------------------------------
+# CART SUMMARY / COUNT
+# -------------------------------
 def get_cart_summary(cart):
-    products = Products.objects.filter(id__in=cart.keys())
+    product_ids = [int(i) for i in cart.keys()] if cart else []
+    products = Products.objects.filter(id__in=product_ids)
 
     cart_items = []
     total_price = 0
     total_qty = 0
 
-    for product in products:
-        qty = cart[str(product.id)]["quantity"]
-        subtotal = qty * float(product.price)
+    product_lookup = {p.id: p for p in products}
+
+    for pid_str, item in cart.items():
+        pid = int(pid_str)
+        product = product_lookup.get(pid)
+
+        if not product:
+            continue
+
+        qty = int(item.get("quantity", 0))
+        price = float(product.price)
+        subtotal = qty * price
+
         total_price += subtotal
         total_qty += qty
 
         cart_items.append({
             "id": product.id,
             "name": product.name,
-            "price": float(product.price),
+            "price": round(price, 2),
             "quantity": qty,
-            "subtotal": subtotal,
+            "subtotal": round(subtotal, 2),
             "image": product.image.url if product.image else "",
         })
 
     return {
         "items": cart_items,
-        "total_price": total_price,
+        "total_price": round(total_price, 2),
         "total_qty": total_qty,
     }
 
 
-# 🛒 GET CART COUNT FOR NAVBAR
 def cart_count(request):
     cart = get_cart(request)
-    total_qty = sum(item["quantity"] for item in cart.values())
+    total_qty = sum(int(item.get("quantity", 0)) for item in cart.values())
     return JsonResponse({"count": total_qty})
 
-def checkout(request):
-    cart = request.session.get("cart", {})
 
+# -------------------------------
+# CHECKOUT
+# -------------------------------
+def checkout(request):
+    if request.method == "POST":
+        print("POST RECEIVED")  # ADD THIS
+
+    cart = get_cart(request)
     if not cart:
         return render(request, "checkout_empty.html")
-
-    products = Products.objects.filter(id__in=cart.keys())
 
     cart_items = []
     total_price = 0
 
-    for product in products:
-        qty = cart[str(product.id)]["quantity"]
-        subtotal = qty * float(product.price)
+    product_ids = [int(i) for i in cart.keys()]
+    products = Products.objects.filter(id__in=product_ids)
+    product_lookup = {p.id: p for p in products}
+
+    for pid_str, item in cart.items():
+        product = product_lookup.get(int(pid_str))
+        if not product:
+            continue
+
+        qty = int(item["quantity"])
+        price = float(product.price)
+        subtotal = round(qty * price, 2)
         total_price += subtotal
 
         cart_items.append({
             "id": product.id,
             "name": product.name,
-            "price": float(product.price),
+            "price": price,
             "quantity": qty,
             "subtotal": subtotal,
             "image": product.image.url if product.image else "",
         })
 
     if request.method == "POST":
-        name = request.POST.get("name")
-        email = request.POST.get("email")
-        address = request.POST.get("address")
-        phone = request.POST.get("phone")
 
-        # Clear cart
-        request.session["cart"] = {}
-        request.session.modified = True
+        name = request.POST.get("name", "").strip()
+        email = request.POST.get("email", "").strip()
+        phone = request.POST.get("phone", "").strip()
+        address = request.POST.get("address", "").strip()
 
-        return render(request, "checkout_success.html", {
-            "name": name,
-            "total_price": total_price
-        })
+        if not (name and email and phone and address):
+            messages.error(request, "All fields are required.")
+            return redirect("checkout")
 
-    return render(request, "checkout.html", {
-        "cart_items": cart_items,
-        "total_price": total_price
-    })
-def checkout_success(request):
-    return render(request, "checkout_success.html")
-from django.core.mail import send_mail
-from django.conf import settings
-from .models import Order, OrderItem
-
-def checkout(request):
-    cart = request.session.get("cart", {})
-
-    if not cart:
-        return render(request, "checkout_empty.html")
-
-    products = Products.objects.filter(id__in=cart.keys())
-
-    cart_items = []
-    total_price = 0
-
-    for product in products:
-        qty = cart[str(product.id)]["quantity"]
-        subtotal = qty * float(product.price)
-        total_price += subtotal
-
-        cart_items.append({
-            "id": product.id,
-            "name": product.name,
-            "price": float(product.price),
-            "quantity": qty,
-            "subtotal": subtotal,
-            "image": product.image.url if product.image else "",
-        })
-
-    # FORM SUBMISSION
-    if request.method == "POST":
-        name = request.POST.get("name")
-        email = request.POST.get("email")
-        address = request.POST.get("address")
-        phone = request.POST.get("phone")
-
-        # SAVE ORDER
-        order = Order.objects.create(
-            customer_name=name,
-            email=email,
-            phone=phone,
-            address=address,
-            total_price=total_price
-        )
-
-        # SAVE ORDER ITEMS + REDUCE PRODUCT STOCK
-        for product in products:
-            qty = cart[str(product.id)]["quantity"]
-            subtotal = qty * float(product.price)
-
-            OrderItem.objects.create(
-                order=order,
-                product=product,
-                quantity=qty,
-                price=product.price,
-                subtotal=subtotal
+        try:
+            order = Order.objects.create(
+                customer_name=name,
+                email=email,
+                phone=phone,
+                address=address,
+                total_price=0,
+                created_at=timezone.now()
             )
 
-            # REDUCE STOCK
-            if hasattr(product, "stock"):  # if stock exists in model
-                product.stock -= qty
-                product.save()
+            for ci in cart_items:
+                product = product_lookup.get(ci["id"])
 
-        # SEND EMAIL RECEIPT
-        send_mail(
-            subject="Your Order Receipt",
-            message=f"Thank you for your order #{order.id}.\nTotal: ${total_price}",
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            recipient_list=[email],
-            fail_silently=True
-        )
+                OrderItem.objects.create(
+                    order=order,
+                    product=product,
+                    quantity=ci["quantity"],
+                    price=Decimal(str(product.price)),
+                    subtotal=Decimal(str(product.price)) * ci["quantity"]
+                )
 
-        # CLEAR CART
-        request.session["cart"] = {}
-        request.session.modified = True
+            order.update_total()
 
-        return render(request, "checkout_success.html", {
-            "name": name,
-            "total_price": total_price,
-            "order_id": order.id
-        })
+            try:
+                send_mail(
+                    f"Order #{order.id} Confirmation",
+                    f"Thanks {order.customer_name}, your order #{order.id} has been placed.",
+                    settings.DEFAULT_FROM_EMAIL,
+                    [order.email],
+                    fail_silently=True,
+                )
+            except:
+                pass
+
+            request.session["cart"] = {}
+            request.session.modified = True
+
+            return redirect("checkout_success")
+
+        except Exception as e:
+            print("CHECKOUT ERROR:", e)
+            messages.error(request, "Order processing failed.")
+            return redirect("checkout")
 
     return render(request, "checkout.html", {
         "cart_items": cart_items,
         "total_price": total_price
     })
+
+
+def checkout_success(request):
+    return render(request, "checkout_success.html")
+
 
 def checkout_empty(request):
     return render(request, "checkout_empty.html")
